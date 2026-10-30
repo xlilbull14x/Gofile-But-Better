@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VaultX | Next-Gen File Vault</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --card: rgba(22, 30, 46, 0.7);
+      --border: rgba(255, 255, 255, 0.1);
+      --primary: #00f2fe;
+      --secondary: #4facfe;
+      --accent: #7f00ff;
+      --text: #f0f4f8;
+      --text-muted: #8a99ad;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Roboto, -apple-system, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(127, 0, 255, 0.2) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(0, 242, 254, 0.15) 0px, transparent 50%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Navbar */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 2rem;
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: 1px;
+    }
+
+    .user-panel {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .btn {
+      background: linear-gradient(135deg, var(--secondary), var(--primary));
+      color: #000;
+      font-weight: 600;
+      border: none;
+      padding: 0.6rem 1.4rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 15px rgba(0, 242, 254, 0.2);
+    }
+
+    .btn:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      box-shadow: none;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    /* Main Layout */
+    main {
+      flex: 1;
+      max-width: 1000px;
+      width: 100%;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    /* Dropzone */
+    .upload-zone {
+      border: 2px dashed rgba(0, 242, 254, 0.3);
+      background: var(--card);
+      backdrop-filter: blur(16px);
+      border-radius: 16px;
+      padding: 3rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--primary);
+      background: rgba(22, 30, 46, 0.9);
+      box-shadow: 0 0 30px rgba(0, 242, 254, 0.15);
+    }
+
+    .upload-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      display: block;
+    }
+
+    .file-input {
+      display: none;
+    }
+
+    /* Storage Grid */
+    .storage-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .file-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .file-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .file-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .file-preview {
+      height: 100px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      overflow: hidden;
+    }
+
+    .file-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .file-info {
+      overflow: hidden;
+    }
+
+    .file-name {
+      font-size: 0.9rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.2rem;
+    }
+
+    .file-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: auto;
+    }
+
+    .file-actions button {
+      flex: 1;
+      padding: 0.4rem;
+      font-size: 0.8rem;
+    }
+
+    /* Auth Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 100;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .modal {
+      background: #121824;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal h2 {
+      margin-bottom: 0.5rem;
+    }
+
+    .modal p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+    }
+
+    .input-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 0.8rem;
+      margin-bottom: 0.4rem;
+      color: var(--text-muted);
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      outline: none;
+    }
+
+    .input-group input:focus {
+      border-color: var(--primary);
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(10px);
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+      transform: translateY(150%);
+      transition: transform 0.3s ease;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">VAULT<span style="color:var(--text);">X</span></div>
+    <div class="user-panel">
+      <span id="user-display" style="font-size: 0.85rem; color: var(--text-muted);">Guest Mode</span>
+      <button class="btn" id="auth-btn" onclick="openAuthModal()">Login / Sign Up</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- File Drop Zone -->
+    <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+      <span class="upload-icon">⚡</span>
+      <h2>Drop files here or click to upload</h2>
+      <p style="color: var(--text-muted); margin-top: 0.5rem; font-size: 0.9rem;">Files save automatically to your session vault</p>
+      <input type="file" id="file-input" class="file-input" multiple onchange="handleFiles(this.files)">
+    </div>
+
+    <!-- Storage Section -->
+    <div class="storage-header">
+      <h3>Your Storage</h3>
+      <button class="btn btn-secondary" onclick="clearStorage()">Clear All</button>
+    </div>
+
+    <div class="file-grid" id="file-grid">
+      <!-- Dynamic Files Render Here -->
+    </div>
+  </main>
+
+  <!-- Login Modal -->
+  <div class="modal-overlay" id="auth-modal">
+    <div class="modal">
+      <h2 id="modal-title">Sign In</h2>
+      <p id="modal-desc">Enter your email to receive a dynamic verification code.</p>
+      
+      <!-- Step 1: Email -->
+      <div id="step-email">
+        <div class="input-group">
+          <label for="email-input">Email Address</label>
+          <input type="email" id="email-input" placeholder="name@example.com">
+        </div>
+        <button class="btn" style="width: 100%;" onclick="sendCode()">Send Code</button>
+      </div>
+
+      <!-- Step 2: Verification Code -->
+      <div id="step-code" style="display: none;">
+        <div class="input-group">
+          <label for="code-input">6-Digit Code</label>
+          <input type="text" id="code-input" placeholder="123456" maxlength="6">
+        </div>
+        <button class="btn" style="width: 100%;" onclick="verifyCode()">Verify & Login</button>
+      </div>
+
+      <button class="btn btn-secondary" style="width: 100%; margin-top: 0.75rem;" onclick="closeAuthModal()">Cancel</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Message here</div>
+
+  <script>
+    // State Management
+    let filesState = JSON.parse(localStorage.getItem('vaultx_files') || '[]');
+    let currentUser = localStorage.getItem('vaultx_user') || null;
+    let generatedCode = null;
+
+    // Initialization
+    document.addEventListener('DOMContentLoaded', () => {
+      updateUserUI();
+      renderFiles();
+      setupDragAndDrop();
+    });
+
+    // Storage Functions
+    function saveToStorage() {
+      try {
+        localStorage.setItem('vaultx_files', JSON.stringify(filesState));
+      } catch (e) {
+        showToast('Storage quota exceeded! Try uploading smaller files.');
+      }
+    }
+
+    function renderFiles() {
+      const grid = document.getElementById('file-grid');
+      grid.innerHTML = '';
+
+      if (filesState.length === 0) {
+        grid.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 2rem;">No files uploaded yet.</p>`;
+        return;
+      }
+
+      filesState.forEach((file, index) => {
+        const card = document.createElement('div');
+        card.className = 'file-card';
+        
+        let previewHtml = file.type.startsWith('image/') 
+          ? `<img src="${file.data}" alt="${file.name}">`
+          : `📄`;
+
+        card.innerHTML = `
+          <div class="file-preview">${previewHtml}</div>
+          <div class="file-info">
+            <div class="file-name" title="${file.name}">${file.name}</div>
+            <div class="file-meta">${formatBytes(file.size)}</div>
+          </div>
+          <div class="file-actions">
+            <button class="btn" onclick="downloadFile(${index})">Download</button>
+            <button class="btn btn-secondary" onclick="deleteFile(${index})">Delete</button>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function handleFiles(files) {
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          filesState.push({
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            data: e.target.result,
+            uploadedAt: new Date().toISOString()
+          });
+          saveToStorage();
+          renderFiles();
+        };
+        reader.readAsDataURL(file);
+      });
+      showToast(`${files.length} file(s) added`);
+    }
+
+    function deleteFile(index) {
+      filesState.splice(index, 1);
+      saveToStorage();
+      renderFiles();
+      showToast('File deleted');
+    }
+
+    function clearStorage() {
+      if (confirm('Are you sure you want to delete all files?')) {
+        filesState = [];
+        saveToStorage();
+        renderFiles();
+        showToast('Storage cleared');
+      }
+    }
+
+    function downloadFile(index) {
+      const file = filesState[index];
+      const a = document.createElement('a');
+      a.href = file.data;
+      a.download = file.name;
+      a.click();
+    }
+
+    // Drag and Drop
+    function setupDragAndDrop() {
+      const zone = document.getElementById('drop-zone');
+
+      ['dragenter', 'dragover'].forEach(eventName => {
+        zone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          zone.classList.add('dragover');
+        });
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        zone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          zone.classList.remove('dragover');
+        });
+      });
+
+      zone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        handleFiles(dt.files);
+      });
+    }
+
+    // Email Code Authentication Simulation
+    function openAuthModal() {
+      document.getElementById('auth-modal').classList.add('active');
+    }
+
+    function closeAuthModal() {
+      document.getElementById('auth-modal').classList.remove('active');
+      document.getElementById('step-email').style.display = 'block';
+      document.getElementById('step-code').style.display = 'none';
+    }
+
+    function sendCode() {
+      const email = document.getElementById('email-input').value;
+      if (!email || !email.includes('@')) {
+        showToast('Please enter a valid email');
+        return;
+      }
+
+      // Generate random 6 digit code
+      generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+      
+      // Simulate email sending via alert
+      alert(`[SIMULATED EMAIL SYSTEM]\n\nYour VaultX Verification Code is: ${generatedCode}`);
+
+      document.getElementById('step-email').style.display = 'none';
+      document.getElementById('step-code').style.display = 'block';
+      showToast('Code sent to ' + email);
+    }
+
+    function verifyCode() {
+      const inputCode = document.getElementById('code-input').value;
+      if (inputCode === generatedCode) {
+        currentUser = document.getElementById('email-input').value;
+        localStorage.setItem('vaultx_user', currentUser);
+        updateUserUI();
+        closeAuthModal();
+        showToast('Successfully logged in!');
+      } else {
+        showToast('Invalid code. Try again.');
+      }
+    }
+
+    function logout() {
+      currentUser = null;
+      localStorage.removeItem('vaultx_user');
+      updateUserUI();
+      showToast('Logged out');
+    }
+
+    function updateUserUI() {
+      const userDisplay = document.getElementById('user-display');
+      const authBtn = document.getElementById('auth-btn');
+
+      if (currentUser) {
+        userDisplay.textContent = currentUser;
+        authBtn.textContent = 'Logout';
+        authBtn.onclick = logout;
+      } else {
+        userDisplay.textContent = 'Guest Mode';
+        authBtn.textContent = 'Login / Sign Up';
+        authBtn.onclick = openAuthModal;
+      }
+    }
+
+    // Utilities
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+  </script>
+</body>
+</html>
